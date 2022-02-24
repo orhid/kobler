@@ -1,0 +1,4 @@
+/target
+auth-token.secret
+Cargo.lock
+.DS_Store

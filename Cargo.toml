@@ -1,0 +1,11 @@
+[package]
+name = "kobler-mira"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tokio = { version = "1", features = ["full"] }
+serenity = "0.10"
+strsim = "0.10"
+rand = "0.8"
+itertools = "0.10"
