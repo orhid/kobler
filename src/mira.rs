@@ -72,7 +72,7 @@ pub enum Group {
 
 impl Group {
     fn valid(c: &str) -> bool {
-        c.len() > 0 && "abc".contains(c)
+        !c.is_empty() && "abc".contains(c)
     }
 
     fn parse(c: &str) -> Self {
@@ -102,7 +102,7 @@ pub enum Quality {
 
 impl Quality {
     fn valid(c: &str) -> bool {
-        c.len() > 0 && "fdc".contains(c)
+        !c.is_empty() && "mpl".contains(c)
     }
 
     fn parse(c: &str) -> Self {
@@ -138,7 +138,7 @@ pub enum Range {
 
 impl Range {
     fn valid(c: &str) -> bool {
-        c.len() > 0 && "bd".contains(c)
+        !c.is_empty() && "bd".contains(c)
     }
 
     fn parse(c: &str) -> Self {
@@ -157,7 +157,7 @@ pub enum Weight {
 
 impl Weight {
     fn valid(c: &str) -> bool {
-        c.len() > 0 && "lc".contains(c)
+        !c.is_empty() && "lc".contains(c)
     }
 
     fn parse(c: &str) -> Self {
@@ -237,8 +237,8 @@ impl Tool {
 
 fn encapsulate(s: &str, i: bool) -> String {
     match i {
-        true => ("(".to_owned() + s + ")").to_string(),
-        false => ("[".to_owned() + s + "]").to_string(),
+        true => "(".to_owned() + s + ")",
+        false => "[".to_owned() + s + "]",
     }
 }
 
@@ -255,12 +255,11 @@ pub fn dice(wzór: &Archetype, field: &Field, tool: &Tool) -> String {
             )
         })
         .collect::<Vec<String>>();
-    match tool.die() {
-        Some(die) => results.push(encapsulate(
+    if let Some(die) = tool.die() {
+        results.push(encapsulate(
             die.choose(&mut rng).expect("kostka nie będzie pusta"),
             true,
-        )),
-        None => (),
+        ))
     };
     let mut concise = results.join("").chars().sorted().collect::<String>();
     concise.retain(|c| "ABCR".contains(c));

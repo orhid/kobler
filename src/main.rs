@@ -11,7 +11,7 @@ use serenity::{
 };
 use std::{collections::HashMap, fs};
 
-pub const KRZYCZ: &'static str = "krzycz `:kobler kurwa` by otrzymać wsparcie.";
+pub const KRZYCZ: &str = "krzycz `:kobler kurwa` by otrzymać wsparcie.";
 
 #[hook]
 async fn unknown_command(ctx: &Context, msg: &Message, unknown_command_name: &str) {
@@ -105,10 +105,7 @@ fn prawzór_gracza(
     holder: &HashMap<UserId, mira::Archetype>,
     user: &UserId,
 ) -> Option<mira::Archetype> {
-    match holder.get(user) {
-        Some(wzór) => Some(*wzór),
-        None => None,
-    }
+    holder.get(user).copied()
 }
 
 #[command]
@@ -133,7 +130,7 @@ async fn prawzór(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
             }
         },
         None => {
-            match prawzór_gracza(&holder, &msg.author.id) {
+            match prawzór_gracza(holder, &msg.author.id) {
                 Some(wzór) => msg.reply(ctx, format!("twój prawzór to {}", wzór)).await?,
                 None => msg.reply(ctx, "nie posiadasz prawzoru.").await?,
             };
@@ -149,7 +146,7 @@ async fn rzut(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let holder = data
         .get_mut::<ArchetypeHolder>()
         .expect("spodziewano się ArchetypeHolder w TypeMap.");
-    match prawzór_gracza(&holder, &msg.author.id) {
+    match prawzór_gracza(holder, &msg.author.id) {
         Some(wzór) => {
             let mut field = mira::Field::Untrained;
             let mut tool = mira::Tool::Bare;
@@ -180,10 +177,10 @@ async fn rzut(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
                 };
                 args.advance();
             }
-            if error == "" {
+            if error.is_empty() {
                 msg.reply(ctx, mira::dice(&wzór, &field, &tool)).await?;
             } else {
-                msg.reply(ctx, format!("{}", error + KRZYCZ)).await?;
+                msg.reply(ctx, (error + KRZYCZ).to_string()).await?;
             }
         }
         None => {
@@ -206,6 +203,7 @@ async fn zanik(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
                 Ok(n) => durability = n,
                 Err(err) => error += &format!("niepoprawny argument trwałości: {}, {}. ", dur, err),
             };
+            args.advance();
 
             while !args.is_empty() {
                 match args
@@ -221,13 +219,13 @@ async fn zanik(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
                 args.advance();
             }
         }
-        None => error += &format!("nie podano trwałości. "),
+        None => error += "nie podano trwałości. ",
     };
 
-    if error == "" {
+    if error.is_empty() {
         msg.reply(ctx, mira::zanik(durability, &quality)).await?;
     } else {
-        msg.reply(ctx, format!("{}", error + KRZYCZ)).await?;
+        msg.reply(ctx, (error + KRZYCZ).to_string()).await?;
     }
 
     Ok(())
