@@ -35,7 +35,7 @@ impl TypeMapKey for ArchetypeHolder {
 
 #[group]
 #[prefixes("kobler", "k")]
-#[commands(kurwa, prawzór, rzut)]
+#[commands(kurwa, prawzór, rzut, zanik)]
 struct General;
 
 struct Handler;
@@ -191,6 +191,44 @@ async fn rzut(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
                 .await?;
         }
     };
+
+    Ok(())
+}
+
+#[command]
+async fn zanik(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
+    let mut durability: usize = 0;
+    let mut quality = mira::Quality::Decent;
+    let mut error = "".to_string();
+    match args.current() {
+        Some(dur) => {
+            match dur.parse::<usize>() {
+                Ok(n) => durability = n,
+                Err(err) => error += &format!("niepoprawny argument trwałości: {}, {}. ", dur, err),
+            };
+
+            while !args.is_empty() {
+                match args
+                    .current()
+                    .expect("było sprawdzone czy pusty")
+                    .to_lowercase()
+                {
+                    arg if arg == "-m" => quality = mira::Quality::Fine,
+                    arg if arg == "-p" => quality = mira::Quality::Decent,
+                    arg if arg == "-l" => quality = mira::Quality::Crude,
+                    arg => error += &format!("niepoprawny argument jakości: {}. ", arg),
+                };
+                args.advance();
+            }
+        }
+        None => error += &format!("nie podano trwałości. "),
+    };
+
+    if error == "" {
+        msg.reply(ctx, mira::zanik(durability, &quality)).await?;
+    } else {
+        msg.reply(ctx, format!("{}", error + KRZYCZ)).await?;
+    }
 
     Ok(())
 }

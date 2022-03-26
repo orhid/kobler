@@ -1,5 +1,9 @@
 use itertools::Itertools;
-use rand::{seq::SliceRandom, thread_rng};
+use rand::{
+    distributions::{Bernoulli, Distribution},
+    seq::SliceRandom,
+    thread_rng,
+};
 use std::fmt;
 use strsim::damerau_levenshtein as dist;
 
@@ -103,9 +107,9 @@ impl Quality {
 
     fn parse(c: &str) -> Self {
         match c {
-            "f" => Self::Fine,
-            "d" => Self::Decent,
-            "c" => Self::Crude,
+            "m" => Self::Fine,
+            "p" => Self::Decent,
+            "l" => Self::Crude,
             _ => panic!("niepoprawny argument jakości."),
         }
     }
@@ -115,6 +119,14 @@ impl Quality {
             Self::Fine => ["XX", "X", "X", "X", " ", " "],
             Self::Decent => ["XX", "X", "X", " ", " ", " "],
             Self::Crude => ["XX", "X", " ", " ", " ", " "],
+        }
+    }
+
+    fn decay(&self) -> f64 {
+        match self {
+            Self::Fine => 3.0_f64.recip(),
+            Self::Decent => 2.0_f64.recip(),
+            Self::Crude => 2.0 * 3.0_f64.recip(),
         }
     }
 }
@@ -254,4 +266,14 @@ pub fn dice(wzór: &Archetype, field: &Field, tool: &Tool) -> String {
     concise.retain(|c| "ABCR".contains(c));
     let results = results.join(" ");
     format!("{}   =>>   {}", results, concise)
+}
+
+pub fn zanik(durability: usize, quality: &Quality) -> String {
+    match Bernoulli::new(quality.decay().powi(durability.try_into().unwrap()))
+        .unwrap()
+        .sample(&mut rand::thread_rng())
+    {
+        true => "porażka! trwałość twojego sprzętu maleje. ".to_string(),
+        false => "sukces! twój sprzęt utrzymuje trwałość. ".to_string(),
+    }
 }
