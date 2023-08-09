@@ -24,7 +24,7 @@ impl Archetype {
         }
     }
 
-    pub fn die(&self) -> [&str; 6] {
+    pub const fn die(&self) -> [&str; 6] {
         match self {
             Self::Fighter => ["BB", "B", "B", "A", "A", "C"],
             Self::Thief => ["AA", "A", "A", "C", "C", "B"],
@@ -39,9 +39,9 @@ impl fmt::Display for Archetype {
             f,
             "{}",
             match self {
-                Archetype::Fighter => "Wojownik",
-                Archetype::Thief => "Złodziej",
-                Archetype::Priest => "Kapłan",
+                Self::Fighter => "Wojownik",
+                Self::Thief => "Złodziej",
+                Self::Priest => "Kapłan",
             }
         )
     }
@@ -54,7 +54,7 @@ pub enum Field {
 }
 
 impl Field {
-    fn dice(&self) -> usize {
+    const fn dice(&self) -> usize {
         match self {
             Self::Untrained => 3,
             Self::Trained => 4,
@@ -84,7 +84,7 @@ impl Group {
         }
     }
 
-    fn sigil(&self) -> &str {
+    const fn sigil(&self) -> &str {
         match self {
             Self::Agile => "A",
             Self::Brute => "B",
@@ -114,7 +114,7 @@ impl Quality {
         }
     }
 
-    fn die(&self) -> [&str; 6] {
+    const fn die(&self) -> [&str; 6] {
         match self {
             Self::Fine => ["XX", "X", "X", "X", " ", " "],
             Self::Decent => ["XX", "X", "X", " ", " ", " "],
@@ -122,7 +122,7 @@ impl Quality {
         }
     }
 
-    fn decay(&self) -> f64 {
+    fn decay(self) -> f64 {
         match self {
             Self::Fine => 3.0_f64.recip(),
             Self::Decent => 2.0_f64.recip(),
@@ -176,13 +176,14 @@ pub enum Tool {
 }
 
 impl Tool {
-    fn simplify(&self) -> Self {
+    const fn simplify(&self) -> Self {
         match self {
             Self::Pure(q, g) => Self::Pure(*q, *g),
             Self::Weapon(w, r, g) => match (w, r) {
                 (Weight::Light, Range::Ranged) => Self::Pure(Quality::Crude, *g),
-                (Weight::Heavy, Range::Ranged) => Self::Pure(Quality::Decent, *g),
-                (Weight::Light, Range::Melee) => Self::Pure(Quality::Decent, *g),
+                (Weight::Heavy, Range::Ranged) | (Weight::Light, Range::Melee) => {
+                    Self::Pure(Quality::Decent, *g)
+                }
                 (Weight::Heavy, Range::Melee) => Self::Pure(Quality::Fine, *g),
             },
             Self::Bare => Self::Bare,
@@ -190,20 +191,21 @@ impl Tool {
     }
 
     pub fn parse_tool(arg: Option<&str>) -> Result<Self, String> {
-        match arg {
-            Some(a) => match a.to_lowercase().split_at(1) {
+        arg.map_or_else(
+            || Err("nie podano argumentu narzędzia. ".to_string()),
+            |a| match a.to_lowercase().split_at(1) {
                 (q, g) if Quality::valid(q) && Group::valid(g) => {
                     Ok(Self::Pure(Quality::parse(q), Group::parse(g)))
                 }
                 _ => Err(format!("niepoprawny argument narzędzia: {}. ", a)),
             },
-            None => Err("nie podano argumentu narzędzia. ".to_string()),
-        }
+        )
     }
 
     pub fn parse_weapon(arg: Option<&str>) -> Result<Self, String> {
-        match arg {
-            Some(a) => match a.to_lowercase().split_at(1) {
+        arg.map_or_else(
+            || Err("nie podano argumentu broni. ".to_string()),
+            |a| match a.to_lowercase().split_at(1) {
                 (w, rest) if Weight::valid(w) => match rest.split_at(1) {
                     (r, g) if Range::valid(r) && Group::valid(g) => {
                         Ok(
@@ -215,13 +217,12 @@ impl Tool {
                 },
                 _ => Err(format!("niepoprawny argument broni: {}. ", a)),
             },
-            None => Err("nie podano argumentu broni. ".to_string()),
-        }
+        )
     }
 
     fn die_safe(&self) -> [String; 6] {
         match self {
-            Self::Pure(q, g) => q.die().map(|s| s.replace("X", g.sigil())),
+            Self::Pure(q, g) => q.die().map(|s| s.replace('X', g.sigil())),
             _ => panic!("niepoprawny argument bezpiecznej kości."),
         }
     }
@@ -242,7 +243,7 @@ fn encapsulate(s: &str, i: bool) -> String {
     }
 }
 
-pub fn dice(wzór: &Archetype, field: &Field, tool: &Tool) -> String {
+pub fn dice(wzór: Archetype, field: &Field, tool: &Tool) -> String {
     let mut rng = thread_rng();
     let mut results = (0..field.dice())
         .map(|_| {
@@ -259,15 +260,15 @@ pub fn dice(wzór: &Archetype, field: &Field, tool: &Tool) -> String {
         results.push(encapsulate(
             die.choose(&mut rng).expect("kostka nie będzie pusta"),
             true,
-        ))
+        ));
     };
     let mut concise = results.join("").chars().sorted().collect::<String>();
     concise.retain(|c| "ABCR".contains(c));
     let results = results.join(" ");
-    format!("{}   =>>   {}", results, concise)
+    format!("{results}   =>>   {concise}")
 }
 
-pub fn zanik(durability: usize, quality: &Quality) -> String {
+pub fn zanik(durability: usize, quality: Quality) -> String {
     match Bernoulli::new(quality.decay().powi(durability.try_into().unwrap()))
         .unwrap()
         .sample(&mut rand::thread_rng())

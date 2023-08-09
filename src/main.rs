@@ -1,3 +1,12 @@
+#![warn(
+    clippy::all,
+    // clippy::restriction,
+    clippy::pedantic,
+    clippy::nursery,
+    // clippy::cargo,
+    clippy::unwrap_used,
+)]
+
 mod mira;
 use serenity::{
     async_trait,
@@ -103,9 +112,9 @@ async fn kurwa(ctx: &Context, msg: &Message) -> CommandResult {
 
 fn prawzór_gracza(
     holder: &HashMap<UserId, mira::Archetype>,
-    user: &UserId,
+    user: UserId,
 ) -> Option<mira::Archetype> {
-    holder.get(user).copied()
+    holder.get(&user).copied()
 }
 
 #[command]
@@ -130,7 +139,7 @@ async fn prawzór(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
             }
         },
         None => {
-            match prawzór_gracza(holder, &msg.author.id) {
+            match prawzór_gracza(holder, msg.author.id) {
                 Some(wzór) => msg.reply(ctx, format!("twój prawzór to {}", wzór)).await?,
                 None => msg.reply(ctx, "nie posiadasz prawzoru.").await?,
             };
@@ -146,11 +155,11 @@ async fn rzut(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let holder = data
         .get_mut::<ArchetypeHolder>()
         .expect("spodziewano się ArchetypeHolder w TypeMap.");
-    match prawzór_gracza(holder, &msg.author.id) {
+    match prawzór_gracza(holder, msg.author.id) {
         Some(wzór) => {
             let mut field = mira::Field::Untrained;
             let mut tool = mira::Tool::Bare;
-            let mut error = "".to_string();
+            let mut error = String::new();
             while !args.is_empty() {
                 match args
                     .current()
@@ -178,7 +187,7 @@ async fn rzut(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
                 args.advance();
             }
             if error.is_empty() {
-                msg.reply(ctx, mira::dice(&wzór, &field, &tool)).await?;
+                msg.reply(ctx, mira::dice(wzór, &field, &tool)).await?;
             } else {
                 msg.reply(ctx, (error + KRZYCZ).to_string()).await?;
             }
@@ -196,7 +205,7 @@ async fn rzut(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
 async fn zanik(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     let mut durability: usize = 0;
     let mut quality = mira::Quality::Decent;
-    let mut error = "".to_string();
+    let mut error = String::new();
     match args.current() {
         Some(dur) => {
             match dur.parse::<usize>() {
@@ -223,7 +232,7 @@ async fn zanik(ctx: &Context, msg: &Message, mut args: Args) -> CommandResult {
     };
 
     if error.is_empty() {
-        msg.reply(ctx, mira::zanik(durability, &quality)).await?;
+        msg.reply(ctx, mira::zanik(durability, quality)).await?;
     } else {
         msg.reply(ctx, (error + KRZYCZ).to_string()).await?;
     }
