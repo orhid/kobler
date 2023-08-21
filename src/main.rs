@@ -1,13 +1,3 @@
-/*
-#![warn(
-    clippy::all,
-    // clippy::restriction,
-    clippy::pedantic,
-    clippy::nursery,
-    // clippy::cargo,
-    // clippy::expect_used,
-)]
-*/
 #![allow(clippy::incorrect_partial_ord_impl_on_ord_type)] // bug in derivative
 #![feature(let_chains)]
 #![feature(extract_if)]
@@ -274,23 +264,19 @@ async fn broń_dodaj(
         .filter_map(|arg| match arg {
             Arg::Short('n', options) => Some(options),
             Arg::Long(param, options) => {
-                if dist(param, "nazwa") < 3 {
-                    Some(options)
-                } else {
-                    None
-                }
+                (dist(param, "nazwa") < 3).then_some(options) 
             }
             _ => None,
         })
         .last() && let Some(nazwa) = options.last()
     {
         if let Ok(broń) = zug::Broń::try_parse(&args)  {
-            let broń = BrońGracza {nazwa: Arc::from(nazwa.as_str()), aktywna: false, broń};
+            let broń_gracza = BrońGracza {nazwa: Arc::from(nazwa.as_str()), aktywna: false, broń};
             if let Some(bronie) = holder.get_mut(&msg.author.id) {
-                bronie.insert(broń);
+                bronie.insert(broń_gracza);
             } else {
                 let mut bronie = HashSet::new();
-                bronie.insert(broń);
+                bronie.insert(broń_gracza);
                 holder.insert(msg.author.id, bronie);
             }
             msg.reply(ctx, "dodano broń.").await?;
@@ -441,11 +427,7 @@ async fn bitwa(ctx: &Context, msg: &Message, args: Args) -> CommandResult {
             .filter_map(|arg| match arg {
                 Arg::Short('p', options) => Some(options),
                 Arg::Long(param, options) => {
-                    if dist(param, "plus") < 3 {
-                        Some(options)
-                    } else {
-                        None
-                    }
+                    (dist(param, "plus") < 3).then_some(options)
                 }
                 _ => None,
             })

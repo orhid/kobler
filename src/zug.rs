@@ -9,9 +9,9 @@ use serenity::framework::standard::CommandResult;
 use std::fmt;
 use strsim::damerau_levenshtein as dist;
 
-const ZNAKI: &str = "𝚯𝚲";
-const SUN: &str = "𝚯";
-const MUN: &str = "𝚲";
+const ZNAKI: &str = "\u{1d6af}\u{1d6b2}";
+const SUN: &str = "\u{1d6af}";
+const MUN: &str = "\u{1d6b2}";
 
 /* # wzorzec */
 
@@ -47,7 +47,7 @@ impl fmt::Display for Wzorzec {
         write!(
             f,
             "{}",
-            match self {
+            match *self {
                 Self::Chojrak => "Chojrak",
                 Self::Szelma => "Szelma",
             }
@@ -247,8 +247,8 @@ impl From<Broń> for Narzędzie {
 #[allow(clippy::match_bool)] // i think this is more readable
 fn encapsulate(s: &str, i: bool) -> String {
     match i {
-        true => "(".to_owned() + s + ")",
-        false => "[".to_owned() + s + "]",
+        true => format!("({s})"),
+        false => format!("[{s}]"),
     }
 }
 
