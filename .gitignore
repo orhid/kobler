@@ -2,3 +2,4 @@
 auth-token.secret
 Cargo.lock
 .DS_Store
+rustfmt.toml
